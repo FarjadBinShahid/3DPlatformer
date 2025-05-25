@@ -1,5 +1,6 @@
 
-using System.Numerics;
+using System.Collections.Generic;
+using _Project.Scripts.Runtime.Core.Helpers.Utilities;
 using _Project.Scripts.Runtime.Core.UpdatePublisher;
 using _Project.Scripts.Runtime.Input;
 using KBCore.Refs;
@@ -14,24 +15,41 @@ namespace _Project.Scripts.Runtime.Character
     {
         [Header("Header")] 
         [SerializeField, Self] private Rigidbody rb;
+        [SerializeField, Self] private GroundChecker groundChecker;
         [SerializeField, Self] private Animator animator;
         [SerializeField,Anywhere] private CinemachineCamera freeLookCam;
         [SerializeField, Anywhere] private InputReader input;
 
 
-        [Header("Settings")] 
+        [Header("Movement Settings")] 
         [SerializeField] private float moveSpeed = 6f;
         [SerializeField] private float rotationSpeed = 15f;
         [SerializeField] private float smoothTime = 0.2f;
 
+        
+        [Header("Jump Settings")]
+        [SerializeField] private float jumpForce = 10f;
+        [SerializeField] private float jumpDuration = 0.5f;
+        [SerializeField] private float jumpCooldown = 0f;
+        [SerializeField] private float jumpMaxHeight = 2f;
+        [SerializeField] private float gravityMultiplier = 3f;
+        
 
         private Transform _mainCam;
         
         
         private float _currentSpeed;
         private float _velocity;
+        private float _jumpVelocity;
 
         private Vector3 _movement;
+        
+        
+        //Timers
+
+        private List<Timer> _timers;
+        private CountdownTimer _jumpTimer;
+        private CountdownTimer _jumpCooldownTimer;
         
         // Animator Parameters
         private static readonly int Speed = Animator.StringToHash("Speed");
@@ -45,6 +63,8 @@ namespace _Project.Scripts.Runtime.Character
                 transform.position - freeLookCam.transform.position - Vector3.forward);
             
             rb.freezeRotation = true;
+
+            SetupTimers();
         }
 
         private void Start()
@@ -56,6 +76,8 @@ namespace _Project.Scripts.Runtime.Character
         {
             UpdatePublisher.RegisterUpdateObserver(this);
             UpdatePublisher.RegisterFixedUpdateObserver(this);
+
+            input.Jump += OnJump;
             //UpdatePublisher.RegisterLateUpdateObserver(this);
         }
 
@@ -63,20 +85,46 @@ namespace _Project.Scripts.Runtime.Character
         {
             UpdatePublisher.UnregisterUpdateObserver(this);
             UpdatePublisher.UnregisterFixedUpdateObserver(this);
+            input.Jump -= OnJump;
             //UpdatePublisher.UnregisterLateUpdateObserver(this);
         }
 
         public void ObservedUpdate()
         {
             _movement = new Vector3(input.Direction.x, 0f, input.Direction.y);
+            HandleTimers();
             UpdateAnimator();
         }
         
         public void ObservedFixedUpdate()
         {
-            //HandleJump();
+            HandleJump();
             HandleMovement();
         }
+
+        private void SetupTimers()
+        {
+            //Setup Timers
+            
+            _jumpTimer = new CountdownTimer(jumpDuration);
+            _jumpCooldownTimer = new CountdownTimer(jumpCooldown);
+            _timers = new List<Timer>(2)
+            {
+                _jumpTimer,
+                _jumpCooldownTimer
+            };
+
+            _jumpTimer.OnTimerStop += () => _jumpCooldownTimer.Start();
+        }
+        
+        private void HandleTimers()
+        {
+            foreach (var timer in _timers)
+            {
+                timer.Tick(Time.deltaTime);
+            }
+        }
+        
 
         private void UpdateAnimator()
         {
@@ -123,6 +171,56 @@ namespace _Project.Scripts.Runtime.Character
         private void SmoothSpeed(float value)
         {
             _currentSpeed = Mathf.SmoothDamp(_currentSpeed, value, ref _velocity, smoothTime);
+        }
+        
+        private void OnJump(bool performed)
+        {
+             if (performed && !_jumpTimer.IsRunning && !_jumpCooldownTimer.IsRunning && groundChecker.IsGrounded)
+            {
+                _jumpTimer.Start();
+            }
+            else if(!performed && _jumpTimer.IsRunning)
+            {
+                _jumpTimer.Stop();
+            }
+        }
+        
+        private void HandleJump()
+        {
+            // if not jumping and grounded,keep jump velocity at 0
+
+            if (!_jumpTimer.IsRunning && groundChecker.IsGrounded)
+            {
+                _jumpVelocity = 0;
+                _jumpTimer.Stop();
+                return;
+            }
+            // if jumping or falling calculate velocity
+
+            if (_jumpTimer.IsRunning)
+            {
+                // progress point for initial burst of velocity
+                var launchPoint = 0.9f;
+                if (_jumpTimer.Progress > launchPoint)
+                {
+                    // calculate the celocity requikred to reach the jump height using physics equation v = sqrt(2gh)
+                    _jumpVelocity = Mathf.Sqrt(2 * jumpMaxHeight * Mathf.Abs(Physics.gravity.y));
+                }
+                else
+                {
+                    // gravity apply less velocity on the jump progress.
+                    _jumpVelocity += (1 - _jumpTimer.Progress) * jumpForce * Time.fixedDeltaTime;
+                }
+            }
+            else 
+            {
+                //gravity takes over.
+                _jumpVelocity += Physics.gravity.y * gravityMultiplier * Time.fixedDeltaTime;
+
+            }
+            
+            // apply velocity
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, _jumpVelocity, rb.linearVelocity.z);
         }
 
 

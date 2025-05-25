@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 191139355}
   - component: {fileID: 191139354}
   - component: {fileID: 191139353}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -272,7 +272,7 @@ GameObject:
   - component: {fileID: 563844916}
   - component: {fileID: 563844915}
   - component: {fileID: 563844914}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -704,7 +704,7 @@ GameObject:
   - component: {fileID: 1693083659}
   - component: {fileID: 1693083658}
   - component: {fileID: 1693083657}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Ground
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1224,6 +1224,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8189980434977739222, guid: 2dfbb63c9cdf7504faf4ff26b0581598, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1998705295}
+    - targetCorrespondingSourceObject: {fileID: 8189980434977739222, guid: 2dfbb63c9cdf7504faf4ff26b0581598, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1998705298}
   m_SourcePrefab: {fileID: 100100000, guid: 2dfbb63c9cdf7504faf4ff26b0581598, type: 3}
 --- !u!1 &1998705290 stripped
 GameObject:
@@ -1248,12 +1251,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rb: {fileID: 1998705295}
+  groundChecker: {fileID: 1998705298}
   animator: {fileID: 1998705291}
   freeLookCam: {fileID: 1906830072}
   input: {fileID: 11400000, guid: 7eced96762ff7474288d700febe81527, type: 2}
   moveSpeed: 300
   rotationSpeed: 300
   smoothTime: 0.2
+  jumpForce: 10
+  jumpDuration: 0.5
+  jumpCooldown: 0
+  jumpMaxHeight: 2
+  gravityMultiplier: 3
 --- !u!54 &1998705295
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1304,6 +1313,22 @@ CapsuleCollider:
   m_Height: 1.6
   m_Direction: 1
   m_Center: {x: 0, y: 0.7, z: 0}
+--- !u!114 &1998705298
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1998705290}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 314d5ad6ffbf2c54b956a2078c2b7ed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  groundDistance: 0.08
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -14,17 +14,17 @@ namespace _Project.Scripts.Runtime.Input
         public event UnityAction EnableMouseControlCamera = delegate { }; 
         public event UnityAction DisableMouseControlCamera = delegate { }; 
         
+        public event UnityAction<bool> Jump = delegate { };
+        
         private InputSystem_Actions _inputActions;
         
         public Vector3 Direction => _inputActions.Player.Move.ReadValue<Vector2>();
 
         private void OnEnable()
         {
-            if (_inputActions == null)
-            {
-                _inputActions = new InputSystem_Actions();
-                _inputActions.Player.SetCallbacks(this);
-            }
+            if (_inputActions != null) return;
+            _inputActions = new InputSystem_Actions();
+            _inputActions.Player.SetCallbacks(this);
         }
 
         public void EnablePlayerActions()
@@ -61,7 +61,15 @@ namespace _Project.Scripts.Runtime.Input
 
         public void OnJump(InputAction.CallbackContext context)
         {
-            // noop
+            switch (context.phase)
+            {
+                case InputActionPhase.Started:
+                    Jump.Invoke(true);
+                    break;
+                case InputActionPhase.Canceled:
+                    Jump.Invoke(false);
+                    break;
+            }
         }
 
         public void OnPrevious(InputAction.CallbackContext context)
@@ -84,10 +92,10 @@ namespace _Project.Scripts.Runtime.Input
             switch (context.phase)
             {
                 case InputActionPhase.Started:
-                    EnableMouseControlCamera?.Invoke();
+                    EnableMouseControlCamera.Invoke();
                     break;
                 case InputActionPhase.Canceled:
-                    DisableMouseControlCamera?.Invoke();
+                    DisableMouseControlCamera.Invoke();
                     break;
             }
         }
