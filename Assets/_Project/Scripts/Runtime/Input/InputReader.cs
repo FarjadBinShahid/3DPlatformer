@@ -6,6 +6,7 @@ using UnityEngine.InputSystem;
 
 namespace _Project.Scripts.Runtime.Input
 {
+    [CreateAssetMenu(fileName = "InputReader", menuName = "Platformer/InputReader")]
     public class InputReader : ScriptableObject, InputSystem_Actions.IPlayerActions
     {
         public event UnityAction<Vector2> Move = delegate { }; 
