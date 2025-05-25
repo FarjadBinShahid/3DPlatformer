@@ -25,6 +25,10 @@ namespace _Project.Scripts.Runtime.Input
                 _inputActions = new InputSystem_Actions();
                 _inputActions.Player.SetCallbacks(this);
             }
+        }
+
+        public void EnablePlayerActions()
+        {
             _inputActions.Enable();
         }
 
