@@ -1,5 +1,3 @@
-using System;
-using System.Dynamic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -15,6 +13,7 @@ namespace _Project.Scripts.Runtime.Input
         public event UnityAction DisableMouseControlCamera = delegate { }; 
         
         public event UnityAction<bool> Jump = delegate { };
+        public event UnityAction<bool> Dash = delegate { };
         
         private InputSystem_Actions _inputActions;
         
@@ -96,6 +95,19 @@ namespace _Project.Scripts.Runtime.Input
                     break;
                 case InputActionPhase.Canceled:
                     DisableMouseControlCamera.Invoke();
+                    break;
+            }
+        }
+
+        public void OnDash(InputAction.CallbackContext context)
+        {
+            switch (context.phase)
+            {
+                case InputActionPhase.Started:
+                    Dash.Invoke(true);
+                    break;
+                case InputActionPhase.Canceled:
+                    Dash.Invoke(false);
                     break;
             }
         }

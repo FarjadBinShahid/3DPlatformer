@@ -1,11 +1,15 @@
 
 using System.Collections.Generic;
 using _Project.Scripts.Runtime.Core.Helpers.Utilities;
+using _Project.Scripts.Runtime.Core.Predicates;
+using _Project.Scripts.Runtime.Core.StateMachine;
+using _Project.Scripts.Runtime.Core.StateMachine.ConcreteStates;
 using _Project.Scripts.Runtime.Core.UpdatePublisher;
 using _Project.Scripts.Runtime.Input;
 using KBCore.Refs;
 using Unity.Cinemachine;
 using UnityEngine;
+
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
 
@@ -31,9 +35,12 @@ namespace _Project.Scripts.Runtime.Character
         [SerializeField] private float jumpForce = 10f;
         [SerializeField] private float jumpDuration = 0.5f;
         [SerializeField] private float jumpCooldown = 0f;
-        [SerializeField] private float jumpMaxHeight = 2f;
         [SerializeField] private float gravityMultiplier = 3f;
         
+        [Header("Dash Settings")]
+        [SerializeField] private float dashForce = 10f;
+        [SerializeField] private float dashDuration = 0.5f;
+        [SerializeField] private float dashCooldown = 2f;
 
         private Transform _mainCam;
         
@@ -41,6 +48,7 @@ namespace _Project.Scripts.Runtime.Character
         private float _currentSpeed;
         private float _velocity;
         private float _jumpVelocity;
+        private float _dashVelocity = 1f;
 
         private Vector3 _movement;
         
@@ -50,9 +58,16 @@ namespace _Project.Scripts.Runtime.Character
         private List<Timer> _timers;
         private CountdownTimer _jumpTimer;
         private CountdownTimer _jumpCooldownTimer;
+        private CountdownTimer _dashTimer;
+        private CountdownTimer _dashCooldownTimer;
+        
+        StateMachine _stateMachine;
         
         // Animator Parameters
         private static readonly int Speed = Animator.StringToHash("Speed");
+
+        #region Unity Methods
+        
         private void Awake()
         {
             if (Camera.main) _mainCam = Camera.main.transform;
@@ -65,6 +80,8 @@ namespace _Project.Scripts.Runtime.Character
             rb.freezeRotation = true;
 
             SetupTimers();
+            SetupStateMachine();
+            
         }
 
         private void Start()
@@ -78,6 +95,7 @@ namespace _Project.Scripts.Runtime.Character
             UpdatePublisher.RegisterFixedUpdateObserver(this);
 
             input.Jump += OnJump;
+            input.Dash += OnDash;
             //UpdatePublisher.RegisterLateUpdateObserver(this);
         }
 
@@ -86,35 +104,88 @@ namespace _Project.Scripts.Runtime.Character
             UpdatePublisher.UnregisterUpdateObserver(this);
             UpdatePublisher.UnregisterFixedUpdateObserver(this);
             input.Jump -= OnJump;
+            input.Dash -= OnDash;
             //UpdatePublisher.UnregisterLateUpdateObserver(this);
         }
 
         public void ObservedUpdate()
         {
             _movement = new Vector3(input.Direction.x, 0f, input.Direction.y);
+            _stateMachine.Update();
             HandleTimers();
             UpdateAnimator();
         }
         
         public void ObservedFixedUpdate()
         {
-            HandleJump();
-            HandleMovement();
+            _stateMachine.FixedUpdate();
+        }
+        
+        #endregion
+
+        #region State Machine
+
+        private void SetupStateMachine()
+        {
+            _stateMachine = new StateMachine();
+            DeclareStates();
         }
 
+        private void DeclareStates()
+        {
+            var locomotionState = new LocomotionState(this, animator);
+            var jumpState = new JumpState(this, animator);
+            var dashState = new DashState(this, animator);
+            
+            
+            AddTransition(locomotionState, jumpState, new FuncPredicate(()=> _jumpTimer.IsRunning));
+            AddTransition(locomotionState, dashState, new FuncPredicate(()=>  _dashTimer.IsRunning));
+            AddAnyTransition(locomotionState, new FuncPredicate(() => groundChecker.IsGrounded && !_dashTimer.IsRunning && !_jumpTimer.IsRunning));
+
+            
+            _stateMachine.SetState(locomotionState);
+        }
+
+        private void AddTransition(IState from, IState to, IPredicate condition) =>
+            _stateMachine.AddTransition(from, to, condition);
+        
+        private void AddAnyTransition(IState to, IPredicate condition) =>
+            _stateMachine.AddAnyTransition(to, condition);
+
+        #endregion
+        
+        #region Timer
+
+        
+
+        
         private void SetupTimers()
         {
             //Setup Timers
             
             _jumpTimer = new CountdownTimer(jumpDuration);
             _jumpCooldownTimer = new CountdownTimer(jumpCooldown);
-            _timers = new List<Timer>(2)
+            _dashTimer = new CountdownTimer(dashDuration);
+            _dashCooldownTimer = new CountdownTimer(dashCooldown);
+            
+
+            _jumpTimer.OnTimerStart += () => _jumpVelocity = jumpForce;
+            _jumpTimer.OnTimerStop += () => _jumpCooldownTimer.Start();
+            
+            _dashTimer.OnTimerStart += () => _dashVelocity = dashForce;
+            _dashTimer.OnTimerStop += () =>
+            {
+                _dashVelocity = 1f;
+                _dashCooldownTimer.Start();
+            };
+            
+            _timers = new List<Timer>(4)
             {
                 _jumpTimer,
-                _jumpCooldownTimer
+                _jumpCooldownTimer,
+                _dashTimer,
+                _dashCooldownTimer
             };
-
-            _jumpTimer.OnTimerStop += () => _jumpCooldownTimer.Start();
         }
         
         private void HandleTimers()
@@ -125,13 +196,23 @@ namespace _Project.Scripts.Runtime.Character
             }
         }
         
+        #endregion
+
+
+        #region Animation
 
         private void UpdateAnimator()
         {
             animator.SetFloat(Speed, _currentSpeed);
         }
+        #endregion
 
-        private void HandleMovement()
+        #region Player Movement
+
+
+        #region locomotion
+
+        public void HandleMovement()
         {
             //Rotate movement direction to match camera rotation
             var adjustedDirection = Quaternion.AngleAxis(_mainCam.eulerAngles.y, Vector3.up) * _movement;
@@ -156,7 +237,8 @@ namespace _Project.Scripts.Runtime.Character
         private void HandleHorizontalMovement(Vector3 adjustedDirection)
         {
             //Move the playervar adjustedMovement = adjustedDirection * (moveSpeed * Time.deltaTime);
-            var velocity = adjustedDirection * (moveSpeed * Time.fixedDeltaTime);
+            //Debug.Log($"Dash Velocity: {_dashVelocity}");
+            var velocity = adjustedDirection * (moveSpeed * _dashVelocity * Time.fixedDeltaTime);
             rb.linearVelocity = new Vector3(velocity.x, rb.linearVelocity.y, velocity.z);
         }
 
@@ -172,10 +254,15 @@ namespace _Project.Scripts.Runtime.Character
         {
             _currentSpeed = Mathf.SmoothDamp(_currentSpeed, value, ref _velocity, smoothTime);
         }
-        
+
+
+        #endregion
+
+        #region Jump
+
         private void OnJump(bool performed)
         {
-             if (performed && !_jumpTimer.IsRunning && !_jumpCooldownTimer.IsRunning && groundChecker.IsGrounded)
+            if (performed && !_jumpTimer.IsRunning && !_jumpCooldownTimer.IsRunning && groundChecker.IsGrounded)
             {
                 _jumpTimer.Start();
             }
@@ -185,7 +272,7 @@ namespace _Project.Scripts.Runtime.Character
             }
         }
         
-        private void HandleJump()
+        public void HandleJump()
         {
             // if not jumping and grounded,keep jump velocity at 0
 
@@ -197,22 +284,7 @@ namespace _Project.Scripts.Runtime.Character
             }
             // if jumping or falling calculate velocity
 
-            if (_jumpTimer.IsRunning)
-            {
-                // progress point for initial burst of velocity
-                var launchPoint = 0.9f;
-                if (_jumpTimer.Progress > launchPoint)
-                {
-                    // calculate the celocity requikred to reach the jump height using physics equation v = sqrt(2gh)
-                    _jumpVelocity = Mathf.Sqrt(2 * jumpMaxHeight * Mathf.Abs(Physics.gravity.y));
-                }
-                else
-                {
-                    // gravity apply less velocity on the jump progress.
-                    _jumpVelocity += (1 - _jumpTimer.Progress) * jumpForce * Time.fixedDeltaTime;
-                }
-            }
-            else 
+            if (!_jumpTimer.IsRunning)
             {
                 //gravity takes over.
                 _jumpVelocity += Physics.gravity.y * gravityMultiplier * Time.fixedDeltaTime;
@@ -223,7 +295,42 @@ namespace _Project.Scripts.Runtime.Character
             rb.linearVelocity = new Vector3(rb.linearVelocity.x, _jumpVelocity, rb.linearVelocity.z);
         }
 
+        #endregion
 
+
+        #region Dash
+
+        private void OnDash(bool performed)
+        {
+            if (performed && !_dashTimer.IsRunning && !_dashCooldownTimer.IsRunning)
+            {
+                _dashTimer.Start();
+            }
+            else if(!performed && _dashTimer.IsRunning)
+            {
+                _dashTimer.Stop();
+            }
+        }
+
+        public void HandleDash()
+        {
+            // if not dashing and grounded,keep dash velocity at 0
+
+            if (!_dashTimer.IsRunning && groundChecker.IsGrounded)
+            {
+                _dashVelocity = 0;
+                _dashTimer.Stop();
+                return;
+            }
+
+            // apply velocity
+            rb.linearVelocity = new Vector3(_dashVelocity, rb.linearVelocity.y, rb.linearVelocity.z);
+        }
+
+        #endregion
+        
+
+        #endregion
         
     }
 }

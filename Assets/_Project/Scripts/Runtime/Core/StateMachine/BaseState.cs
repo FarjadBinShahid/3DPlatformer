@@ -10,6 +10,7 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
         
         protected static readonly int LocomotionHash = Animator.StringToHash("Locomotion");
         protected static readonly int JumpHash = Animator.StringToHash("Jump");
+        protected static readonly int DashHash = Animator.StringToHash("Dash");
 
 
         protected const float CrossFadeDuration = 0.1f;
@@ -27,6 +28,7 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
 
         public virtual void OnExit()
         {
+            
             //noop
         }
 

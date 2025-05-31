@@ -6,7 +6,7 @@ using _Project.Scripts.Runtime.Core.UpdatePublisher;
 
 namespace _Project.Scripts.Runtime.Core.StateMachine
 {
-    public class StateMachine : IUpdateObserver, IFixedUpdateObserver
+    public class StateMachine 
     {
 
         private StateNode _current;
@@ -15,7 +15,7 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
         private HashSet<ITransition> _anyTransitions = new ();
 
         
-        public void ObservedUpdate()
+        public void Update()
         {
             var transition = GetTransition();
             if (transition != null)
@@ -26,7 +26,7 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
             _current.State?.Update();
         }
         
-        public void ObservedFixedUpdate()
+        public void FixedUpdate()
         {
             _current.State?.FixedUpdate();
         }

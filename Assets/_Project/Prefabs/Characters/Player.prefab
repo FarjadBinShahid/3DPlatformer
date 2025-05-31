@@ -1999,8 +1999,10 @@ MonoBehaviour:
   jumpForce: 10
   jumpDuration: 0.5
   jumpCooldown: 0
-  jumpMaxHeight: 2
   gravityMultiplier: 3
+  dashForce: 10
+  dashDuration: 0.5
+  dashCooldown: 0
 --- !u!136 &7963207454306449414
 CapsuleCollider:
   m_ObjectHideFlags: 0
