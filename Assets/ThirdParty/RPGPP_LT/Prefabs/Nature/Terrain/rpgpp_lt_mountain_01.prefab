@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 33732981895488272}
   - component: {fileID: 23991852965333892}
   - component: {fileID: -829772413279537205}
-  m_Layer: 7
+  m_Layer: 6
   m_Name: rpgpp_lt_mountain_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
