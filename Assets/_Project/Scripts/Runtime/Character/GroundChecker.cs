@@ -1,8 +1,8 @@
 using _Project.Scripts.Runtime.Core.UpdatePublisher;
 using UnityEngine;
 
-
-
+namespace _Project.Scripts.Runtime.Character
+{
     public class GroundChecker : MonoBehaviour, IUpdateObserver
     {
         [SerializeField] private float groundDistance = 0.08f;
@@ -26,4 +26,5 @@ using UnityEngine;
             IsGrounded = Physics.SphereCast(transform.position, groundDistance, Vector3.down, out _, groundDistance, groundLayer);
         }
     }
+}
 

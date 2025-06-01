@@ -6,7 +6,7 @@ using _Project.Scripts.Runtime.Core.UpdatePublisher;
 
 namespace _Project.Scripts.Runtime.Core.StateMachine
 {
-    public class StateMachine 
+    public class StateMachine
     {
 
         private StateNode _current;
@@ -14,7 +14,7 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
 
         private HashSet<ITransition> _anyTransitions = new ();
 
-        
+
         public void Update()
         {
             var transition = GetTransition();
@@ -22,10 +22,10 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
             {
                 ChangeState(transition.To);
             }
-            
+
             _current.State?.Update();
         }
-        
+
         public void FixedUpdate()
         {
             _current.State?.FixedUpdate();
@@ -40,14 +40,14 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
         private void ChangeState(IState state)
         {
             if (state == _current.State) return;
-            
+
             var previousState = _current.State;
             var nextState = _nodes[state.GetType()].State;
-            
+
             previousState?.OnExit();
             nextState?.OnEnter();
             _current = _nodes[state.GetType()];
-            
+
         }
 
 
@@ -58,13 +58,13 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
                 if(transition.Condition.Evaluate())
                     return transition;
             }
-            
+
             foreach (var transition in _current.Transitions)
             {
                 if(transition.Condition.Evaluate())
                     return transition;
             }
-            
+
             return null;
         }
 
@@ -76,7 +76,7 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
 
         public void AddAnyTransition(IState to, IPredicate condition)
         {
-            _anyTransitions.Add(new Transition.Transition(to, condition));
+            _anyTransitions.Add(new Transition.Transition(GetOrAddNode(to).State, condition));
         }
 
         private StateNode GetOrAddNode(IState state)
@@ -84,13 +84,13 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
             var node = _nodes.GetValueOrDefault(state.GetType());
 
             if (node != null) return node;
-            
+
             node = new StateNode(state);
             _nodes.Add(state.GetType(), node);
 
             return node;
         }
-        
+
 
         class StateNode
         {
@@ -110,6 +110,6 @@ namespace _Project.Scripts.Runtime.Core.StateMachine
         }
 
 
-        
+
     }
 }

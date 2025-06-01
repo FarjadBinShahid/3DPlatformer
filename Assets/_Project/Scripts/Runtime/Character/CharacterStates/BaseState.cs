@@ -1,7 +1,7 @@
-using _Project.Scripts.Runtime.Character;
+using _Project.Scripts.Runtime.Core.StateMachine;
 using UnityEngine;
 
-namespace _Project.Scripts.Runtime.Core.StateMachine
+namespace _Project.Scripts.Runtime.Character.CharacterStates
 {
     public abstract class BaseState : IState
     {

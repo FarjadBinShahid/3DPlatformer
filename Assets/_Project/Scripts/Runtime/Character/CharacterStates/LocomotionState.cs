@@ -1,7 +1,6 @@
-using _Project.Scripts.Runtime.Character;
 using UnityEngine;
 
-namespace _Project.Scripts.Runtime.Core.StateMachine.ConcreteStates
+namespace _Project.Scripts.Runtime.Character.CharacterStates
 {
     public class LocomotionState : BaseState
     {

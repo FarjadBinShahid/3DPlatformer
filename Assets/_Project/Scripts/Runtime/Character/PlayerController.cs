@@ -1,9 +1,9 @@
 
 using System.Collections.Generic;
+using _Project.Scripts.Runtime.Character.CharacterStates;
 using _Project.Scripts.Runtime.Core.Helpers.Utilities;
 using _Project.Scripts.Runtime.Core.Predicates;
 using _Project.Scripts.Runtime.Core.StateMachine;
-using _Project.Scripts.Runtime.Core.StateMachine.ConcreteStates;
 using _Project.Scripts.Runtime.Core.UpdatePublisher;
 using _Project.Scripts.Runtime.Input;
 using KBCore.Refs;
